@@ -9,10 +9,12 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 
 import android.app.Activity;
 import android.app.ActionBar;
 import android.app.Fragment;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -47,25 +49,26 @@ public class MainActivity extends Activity {
 			public void onClick(View arg0) {
 				// TODO Auto-generated method stub
 				btn.setEnabled(false);
-				final ArrayList<String> files = new ArrayList<String>();
-
-				files.addAll(FileUtils.listFiles(arg0, arg1, arg2));
-				AsyncTask task = new AsyncTask<ArrayList<String>, Integer, Long>() {
-
-				};
-				task.execute(files);
+				final ArrayList<String> folders = new ArrayList<String>();
+				for(int i = 0; i < folderAdapter.getCount(); i++) {
+					folders.add(folderAdapter.getItem(i));
+				}
+				MoverTask task = new MoverTask();
+				task.execute(folders);
 			}
 		});
 	}
 
 	private class MoverTask extends AsyncTask<ArrayList<String>, Integer, Long> {
 		@Override
-		protected Long doInBackground(ArrayList<String>... fileArrayLists) {
-			ArrayList<String> fileArrayList = fileArrayLists[0];
-			int count = fileArrayList.size();
-			for (String string : fileArrayList) {
-				moveFile(inputPath, inputFile, outputPath);
+		protected Long doInBackground(ArrayList<String>... foldersArray) {
+			
+			ArrayList<String> folders = foldersArray[0];
+			ArrayList<File> files = new ArrayList<File>(); 
+			for (String folder : folders) {
+				files.addAll(FileUtils.listFiles(new File(folder), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE));
 			}
+			
 			return 0l;
 		}
 
