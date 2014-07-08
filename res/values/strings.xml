@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">FileUnifier</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="move_files">Move files</string>
+    <string name="folders_to_move">Folders to move</string>
+    <string name="destination">Destination</string>
+</resources>
