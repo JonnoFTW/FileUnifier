@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 
 import android.app.Activity;
@@ -28,30 +29,36 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.os.Build;
 
-public class MainActivity extends Activity {
+
+public class MainActivity extends Activity// implements	DirectoryChooserFragment.OnFragmentInteractionListener  
+{
 	private Button btn;
+	private static final String TAG = "MainActivity";
 	private ProgressBar pb;
+	private TextView textLog;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		pb = (ProgressBar) findViewById(R.id.progressBar1);
-		pb.setMax(100);
+		textLog = (TextView) findViewById(R.id.textLog);
+		
 		final ArrayAdapter<String> folderAdapter = new ArrayAdapter<String>(
 				this, android.R.layout.simple_list_item_1, new String[] {});
+		
 		ListView lv = (ListView) findViewById(R.id.listView1);
 		btn = (Button) findViewById(R.id.buttonMoveFiles);
 		btn.setOnClickListener(new OnClickListener() {
 
 			@Override
 			public void onClick(View arg0) {
-				// TODO Auto-generated method stub
-				btn.setEnabled(false);
-				final ArrayList<String> folders = new ArrayList<String>();
+				btn.setText(getResources().getString(R.string.move_files));
+				String[] folders = new String[folderAdapter.getCount()];
 				for(int i = 0; i < folderAdapter.getCount(); i++) {
-					folders.add(folderAdapter.getItem(i));
+					folders[i] = folderAdapter.getItem(i);
 				}
 				MoverTask task = new MoverTask();
 				task.execute(folders);
@@ -59,30 +66,52 @@ public class MainActivity extends Activity {
 		});
 	}
 
-	private class MoverTask extends AsyncTask<ArrayList<String>, Integer, Long> {
+	private class MoverTask extends AsyncTask<String, String, Long> {
+		private int numFiles;
+		private int processed;
 		@Override
-		protected Long doInBackground(ArrayList<String>... foldersArray) {
-			
-			ArrayList<String> folders = foldersArray[0];
+		protected void onPreExecute() {
+			btn.setEnabled(false);
+			pb.setVisibility(View.VISIBLE);
+			processed = 0;
+		}
+		@Override
+		protected Long doInBackground(String... foldersArray) {
 			ArrayList<File> files = new ArrayList<File>(); 
-			for (String folder : folders) {
-				files.addAll(FileUtils.listFiles(new File(folder), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE));
+			for (String folder : foldersArray) {
+				files.addAll(FileUtils.listFiles(
+						new File(folder), 
+						TrueFileFilter.INSTANCE, 
+						TrueFileFilter.INSTANCE));
 			}
-			
+			pb.setMax(numFiles);
+			numFiles = files.size();
+			for (File file : files) {
+				// Move the files over
+				++processed;
+				publishProgress(processed+": "+file.getAbsolutePath()+" -> ");
+			}
 			return 0l;
 		}
 
-		protected void onProgressUpdate(Integer... progress) {
-			pb.setProgress(progress[0]);
+		protected void onProgressUpdate(String... progress) {
+			pb.setProgress(processed);
+			btn.setText(String.format("%s %d/%d %s",
+					getResources().getString(R.string.moved),
+					progress[0],
+					numFiles,
+					getResources().getString(R.string.files)));
+			textLog.append(progress[0]);
 		}
 
 		protected void onPostExecute(Long result) {
 			btn.setEnabled(true);
+			pb.setVisibility(View.GONE);
 		}
 
 	}
 
-	private void moveFile(String inputPath, String inputFile, String outputPath) {
+	private static void moveFile(String inputPath, String inputFile, String outputPath) {
 
 		InputStream in = null;
 		OutputStream out = null;
@@ -97,29 +126,19 @@ public class MainActivity extends Activity {
 			in = new FileInputStream(inputPath + inputFile);
 			out = new FileOutputStream(outputPath + inputFile);
 
-			byte[] buffer = new byte[1024];
-			int read;
-			while ((read = in.read(buffer)) != -1) {
-				out.write(buffer, 0, read);
-			}
+			IOUtils.copy(in, out);
 			in.close();
-			in = null;
-
-			// write the output file
-			out.flush();
 			out.close();
-			out = null;
-
 			// delete the original file
 			new File(inputPath + inputFile).delete();
 
 		}
 
 		catch (FileNotFoundException fnfe1) {
-			Log.e("tag", fnfe1.getMessage());
+			Log.e(TAG, fnfe1.getMessage());
 		} catch (Exception e) {
-			Log.e("tag", e.getMessage());
-		}
+			Log.e(TAG, e.getMessage());
+		} 
 
 	}
 
@@ -143,18 +162,6 @@ public class MainActivity extends Activity {
 		return super.onOptionsItemSelected(item);
 	}
 
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		super.onActivityResult(requestCode, resultCode, data);
 
-		if (requestCode == REQUEST_DIRECTORY) {
-			if (resultCode == DirectoryChooserActivity.RESULT_CODE_DIR_SELECTED) {
-				handleDirectoryChoice(data
-						.getStringExtra(DirectoryChooserActivity.RESULT_SELECTED_DIR));
-			} else {
-				// Nothing selected
-			}
-		}
-	}
 
 }

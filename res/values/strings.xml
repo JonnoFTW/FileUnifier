@@ -7,4 +7,7 @@
     <string name="move_files">Move files</string>
     <string name="folders_to_move">Folders to move</string>
     <string name="destination">Destination</string>
+    <string name="files">files</string>
+    <string name="moved">Moved</string>
+
 </resources>
